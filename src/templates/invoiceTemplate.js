@@ -32,7 +32,7 @@ module.exports = (data) => {
         /* A5 Setup: 148mm × 210mm [web:808] */
         @page {
             size: 148mm 210mm;
-            margin: 10mm; 
+            margin: 5mm; 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -95,10 +95,10 @@ module.exports = (data) => {
                 <tr>
                     <th width="8%">S.N</th>
                     <th width="35%">Item Name</th>
-                    <th width="17%">Cat</th>
+                    <th width="15%">Cat</th>
                     <th width="10%">Qty</th>
-                    <th width="15%">Rate</th>
-                    <th width="15%">Total</th>
+                    <th width="13%">Rate</th>
+                    <th width="20%">Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -112,8 +112,9 @@ module.exports = (data) => {
 
         <!-- Category Summary Section [web:814] -->
         <div class="category-summary">
-            <p class="summary-title">Quantity Summary (By Category):</p>
+            
             <div class="summary-grid">
+            <p class="summary-title">Quantity Summary (By Category):</p>
                 <span><strong>Colored:</strong> ${totalsByCategory.colored}</span>
                 <span><strong>Black:</strong> ${totalsByCategory.black}</span>
                 <span><strong>TPE:</strong> ${totalsByCategory.tpe}</span>
