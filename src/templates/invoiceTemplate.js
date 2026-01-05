@@ -1,26 +1,17 @@
-//module.exports = (data) => `
-//<html>
-//  <body style="width: 105mm; height: 148mm; font-family: sans-serif; padding: 5mm;">
-//    <h2 style="text-align: center;">Price Estimate</h2>
-//    <p><strong>M/s:</strong> ${data.clientName}</p>
-//    <p><strong>Ref:</strong> ${data.refNo} | <strong>Date:</strong> ${data.date}</p>
-//    <table border="1" style="width: 100%; border-collapse: collapse; font-size: 10px;">
-//      <thead>
-//        <tr><th>S.N</th><th>Item</th><th>Qty</th><th>Total</th></tr>
-//      </thead>
-//      <tbody>
-//        ${data.items.map((it, idx) => `
-//          <tr><td>${idx+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${it.total}</td></tr>
-//        `).join('')}
-//      </tbody>
-//    </table>
-//    <h3 style="text-align: right;">Grand Total: ₹ ${data.total}</h3>
-//  </body>
-//</html>`;
-
-
 module.exports = (data) => {
-  // Map through the items to create the table rows dynamically [web:214]
+  // 1. Calculate Quantity Totals by Category [web:814][web:820]
+  const totalsByCategory = data.items.reduce((acc, item) => {
+    const cat = (item.category || 'Other').toLowerCase();
+    const qty = parseFloat(item.qty || 0);
+    
+    if (cat.includes('colored')) acc.colored += qty;
+    else if (cat.includes('black')) acc.black += qty;
+    else if (cat.includes('tpe')) acc.tpe += qty;
+    
+    return acc;
+  }, { colored: 0, black: 0, tpe: 0 });
+
+  // 2. Generate Table Rows [web:214]
   const itemRows = data.items.map((item, index) => `
     <tr>
       <td class="num">${index + 1}</td>
@@ -38,38 +29,47 @@ module.exports = (data) => {
 <head>
     <meta charset="UTF-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: white; }
-        
-        /* A6 Size: 105mm × 148mm */
-        .pdf-container {
-            width: 105mm; height: 148mm; padding: 6mm;
-            display: flex; flex-direction: column; font-size: 8.5pt; color: #333;
+        /* A5 Setup: 148mm × 210mm [web:808] */
+        @page {
+            size: 148mm 210mm;
+            margin: 10mm; 
         }
 
-        .header { text-align: center; border-bottom: 1.5px solid #333; margin-bottom: 3mm; padding-bottom: 1mm; }
-        .header h1 { font-size: 13pt; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5mm; }
-        .header h3 { font-size: 9pt; font-weight: 600; color: #444; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: white; }
         
-        .meta { display: flex; justify-content: space-between; font-size: 7.5pt; color: #555; margin-top: 1.5mm; }
+        .pdf-container {
+            width: 100%; min-height: 100%; 
+            display: block; font-size: 9.5pt; color: #333;
+        }
 
-        .fields-grid { margin-bottom: 3mm; border-bottom: 0.5px solid #eee; padding-bottom: 2mm; }
-        .field { display: flex; align-items: baseline; gap: 2mm; margin-bottom: 1mm; }
-        .label { font-size: 7.5pt; font-weight: bold; color: #555; text-transform: uppercase; width: 30px; }
+        .header { text-align: center; border-bottom: 2px solid #333; margin-bottom: 5mm; padding-bottom: 2mm; }
+        .header h1 { font-size: 16pt; text-transform: uppercase; margin-bottom: 1mm; }
+        
+        .meta { display: flex; justify-content: space-between; font-size: 9pt; margin-top: 2mm; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 7.5pt; margin-bottom: auto; }
-        th { background: #f0f0f0; text-align: left; padding: 1.2mm; border: 0.8px solid #333; text-transform: uppercase; font-size: 6.5pt; }
-        td { border: 0.5px solid #ccc; padding: 1.2mm; vertical-align: middle; }
+        .fields-grid { margin-bottom: 5mm; border-bottom: 0.5px solid #eee; padding-bottom: 3mm; }
+        .label { font-size: 9pt; font-weight: bold; width: 40px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 5mm; }
+        th { background: #f0f0f0; padding: 2mm; border: 1px solid #333; text-transform: uppercase; }
+        td { border: 0.5px solid #ccc; padding: 2mm; vertical-align: middle; }
         td.num { text-align: right; }
-        
-        .total-row td { font-weight: bold; background: #fafafa; border-top: 1.5px solid #333; }
+        tr { page-break-inside: avoid; break-inside: avoid; }
 
-        .signatures { display: flex; justify-content: space-between; margin-top: 5mm; }
-        .sig-block { text-align: center; width: 45%; }
-        .sig-line { border-top: 0.8px solid #333; margin-bottom: 1mm; height: 5mm; }
-        .sig-label { font-size: 6.5pt; font-weight: bold; text-transform: uppercase; }
+        .total-row td { font-weight: bold; background: #fafafa; border-top: 2px solid #333; }
 
-        .footer { font-size: 6pt; text-align: center; color: #999; margin-top: 2mm; border-top: 0.5px solid #eee; padding-top: 1mm; }
+        /* Summary Section */
+        .category-summary { 
+            margin-top: 5mm; padding: 3mm; border: 1px dashed #ccc; 
+            border-radius: 5px; background: #fdfdfd; 
+        }
+        .summary-title { font-weight: bold; font-size: 8.5pt; margin-bottom: 2mm; text-decoration: underline; }
+        .summary-grid { display: flex; gap: 10mm; font-size: 8.5pt; color: #555; }
+
+        .signatures { display: flex; justify-content: space-between; margin-top: 15mm; }
+        .sig-block { text-align: center; width: 40%; }
+        .sig-line { border-top: 1px solid #333; height: 10mm; }
     </style>
 </head>
 <body>
@@ -78,15 +78,15 @@ module.exports = (data) => {
             <h1>Price Estimate</h1>
             <h3>Jai Industrial Corporation</h3>
             <div class="meta">
-                <span><strong>Ref :</strong> ${data.refNo || '2025/HP/01'}</span>
-                <span><strong>Date :</strong> ${data.date || new Date().toLocaleDateString('en-IN')}</span>
+                <span><strong>Ref :</strong> ${data.refNo}</span>
+                <span><strong>Date :</strong> ${data.date}</span>
             </div>
         </div>
 
         <div class="fields-grid">
             <div class="field">
                 <span class="label">M/s</span>
-                <span style="border-bottom: 0.5px solid #ddd; flex: 1;">${data.clientName || 'N/A'}</span>
+                <span style="border-bottom: 0.5px solid #ddd;">${data.clientName}</span>
             </div>
         </div>
 
@@ -105,22 +105,25 @@ module.exports = (data) => {
                 ${itemRows}
                 <tr class="total-row">
                     <td colspan="5" style="text-align: right; padding-right: 2mm;">GRAND TOTAL</td>
-                    <td class="num">₹ ${data.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td class="num">₹ ${data.total.toLocaleString('en-IN')}</td>
                 </tr>
             </tbody>
         </table>
 
-        <div class="signatures">
-            <div class="sig-block">
-                <div class="sig-line"></div>
-                <div class="sig-label">Authorized By</div>
-            </div>
-            <div class="sig-block">
-                <div class="sig-line"></div>
-                <div class="sig-label">Receiver's Sign</div>
+        <!-- Category Summary Section [web:814] -->
+        <div class="category-summary">
+            <p class="summary-title">Quantity Summary (By Category):</p>
+            <div class="summary-grid">
+                <span><strong>Colored:</strong> ${totalsByCategory.colored}</span>
+                <span><strong>Black:</strong> ${totalsByCategory.black}</span>
+                <span><strong>TPE:</strong> ${totalsByCategory.tpe}</span>
             </div>
         </div>
 
+        <div class="signatures">
+            <div class="sig-block"><div class="sig-line"></div><p>Authorized Signatory</p></div>
+            <div class="sig-block"><div class="sig-line"></div><p>Receiver's Signature</p></div>
+        </div>
     </div>
 </body>
 </html>`;
