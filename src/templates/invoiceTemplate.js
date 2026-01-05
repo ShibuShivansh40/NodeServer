@@ -79,7 +79,7 @@ module.exports = (data) => {
             <h3>Jai Industrial Corporation</h3>
             <div class="meta">
                 <span><strong>Ref :</strong> ${data.refNo}</span>
-                <span><strong>Date :</strong> ${data.date}</span>
+                <span><strong>Date :</strong> ${data.date}</span>   
             </div>
         </div>
 

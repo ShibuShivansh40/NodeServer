@@ -32,13 +32,91 @@
 //});
 //module.exports = router;
 
+
+
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize'); // REQUIRED FOR SUMMARY QUERY [file:884]
 const invoiceController = require('../controllers/invoiceGenerator');
+const { Invoice } = require('../models/Invoice'); // Import model directly [file:885]
 
+// Standard Routes [file:884]
 router.post('/generate-pdf', invoiceController.createAndSendPDF);
 router.post('/fetch-pdf', invoiceController.fetchExistingPDF);
 router.get('/records', invoiceController.getAllRecords);
+router.get('/count', invoiceController.getCount);
+
+// Summary Route [file:884]
+router.post('/generate-summary', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    
+    // 1. Fetch only selected invoices [file:884]
+    const invoices = await Invoice.findAll({
+      where: { refNo: { [Op.in]: ids } }
+    });
+
+    if (invoices.length === 0) return res.status(404).json({ error: "No records found" });
+
+    // 2. Aggregate Data [file:884]
+    
+    const summaryData = invoices.reduce((acc, inv) => {
+    const client = inv.clientName;
+    if (!acc[client]) {
+      acc[client] = { 
+        colored: { qty: 0, bags: 0 }, 
+        black: { qty: 0, bags: 0 }, 
+        tpe: { qty: 0, bags: 0 } 
+      };
+    } 
+  
+    inv.items.forEach(item => {
+      const cat = (item.category || '').toLowerCase();
+      const qty = parseFloat(item.qty || 0);
+    
+      if (cat.includes('colored')) {
+        acc[client].colored.qty += qty;
+      } else if (cat.includes('black')) {
+        acc[client].black.qty += qty;
+      } else if (cat.includes('tpe')) {
+        acc[client].tpe.qty += qty;
+      }
+    });
+
+    // After summing all items for this client, calculate bags [web:898]
+    // Color/TPE: 25kg per bag | Black: 50kg per bag
+    acc[client].colored.bags = Math.ceil(acc[client].colored.qty / 25);
+    acc[client].black.bags = Math.ceil(acc[client].black.qty / 50);
+    acc[client].tpe.bags = Math.ceil(acc[client].tpe.qty / 25);
+
+    return acc;
+  }, {});
+
+    
+//    const summaryData = invoices.reduce((acc, inv) => {
+//      const client = inv.clientName;
+ //     if (!acc[client]) acc[client] = { colored: 0, black: 0, tpe: 0 };
+      
+//      inv.items.forEach(item => {
+//        const cat = (item.category || '').toLowerCase();
+//        const qty = parseFloat(item.qty || 0);
+//        if (cat.includes('colored')) acc[client].colored += qty;
+ //       else if (cat.includes('black')) acc[client].black += qty;
+//        else if (cat.includes('tpe')) acc[client].tpe += qty;
+//      });
+
+//      return acc;
+//    }, {});
+
+    // 3. Generate PDF using the function exported from invoiceGenerator.js [file:886]
+    const pdfBase64 = await invoiceController.generateSummaryPDF(summaryData);
+
+    res.json({ success: true, pdf: pdfBase64 });
+  } catch (error) {
+    console.error("Summary Generation Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 module.exports = router;
-
+    

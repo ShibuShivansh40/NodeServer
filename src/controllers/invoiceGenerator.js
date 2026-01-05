@@ -2,6 +2,10 @@ const puppeteer = require('puppeteer');
 const { Invoice } = require('../models/Invoice');
 const invoiceTemplate = require('../templates/invoiceTemplate');
 const { Op } = require('sequelize');
+const summaryTemplate = require('../templates/summaryTemplate');
+
+
+
 
 // Helper to get initials
 const getInitials = (name) => {
@@ -89,3 +93,36 @@ exports.getAllRecords = async (req, res) => {
   }
 };
 
+exports.generateSummaryPDF = async (summaryData) => {
+  let browser;
+  try {
+    browser = await puppeteer.launch({ 
+        headless: 'shell', 
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
+    const page = await browser.newPage();
+    const html = summaryTemplate(summaryData); // Use the new template
+    await page.setContent(html);
+
+    const pdfBuffer = await page.pdf({ 
+        format: 'A5', 
+        printBackground: true,
+        preferCSSPageSize: true 
+    });
+
+    await browser.close();
+    return Buffer.from(pdfBuffer).toString('base64');
+  } catch (error) {
+    if (browser) await browser.close();
+    throw error;
+  }
+};
+
+exports.getCount = async (req, res) => {
+  try {
+    const count = await Invoice.count(); // Sequelize method to get total [file:891]
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
