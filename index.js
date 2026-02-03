@@ -1,22 +1,24 @@
 const express = require('express');
 const cors = require('cors');
-const { sequelize } = require('./src/models/Invoice');
+const app = express();
+const sequelize = require('./src/db'); // Central DB connection
+const Invoice = require('./src/models/Invoice'); // Force load models
+const Client = require('./src/models/Client');   // Force load models
+const Product = require('./src/models/Product'); // Force load models
 const invoiceRoutes = require('./src/routes/invoiceRoutes');
 
-const app = express();
 app.use(cors()); // Allow your Android app to connect
 app.use(express.json());
-
-// Use routes
 app.use('/api', invoiceRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-sequelize.sync().then(() => {
+sequelize.sync({ alter: true }).then(() => {
   app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-    console.log(`Now run: ngrok http ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
+}).catch(err => {
+  console.error('Database sync failed:', err);
 });
 
 // Add this to the very bottom of index.js

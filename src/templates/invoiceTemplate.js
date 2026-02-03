@@ -93,9 +93,9 @@ module.exports = (data) => {
         <table>
             <thead>
                 <tr>
-                    <th width="8%">S.N</th>
+                    <th width="8%">S.No</th>
                     <th width="35%">Item Name</th>
-                    <th width="15%">Cat</th>
+                    <th width="15%">Category</th>
                     <th width="10%">Qty</th>
                     <th width="13%">Rate</th>
                     <th width="20%">Total</th>
@@ -117,7 +117,7 @@ module.exports = (data) => {
             <p class="summary-title">Quantity Summary (By Category):</p>
                 <span><strong>Colored:</strong> ${totalsByCategory.colored}</span>
                 <span><strong>Black:</strong> ${totalsByCategory.black}</span>
-                <span><strong>TPE:</strong> ${totalsByCategory.tpe}</span>
+                <span><strong>7D:</strong> ${totalsByCategory.tpe}</span>
             </div>
         </div>
 
